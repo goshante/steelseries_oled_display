@@ -8,6 +8,8 @@
 
 #include <hidapi.h>
 #include "Canvas.h"
+#include "VirtualCanvas.h"
+#include "Font.h"
 
 using namespace std::chrono_literals;
 
@@ -88,33 +90,48 @@ bitmap_t getPicture(const std::string& sign)
 
 int main()
 {
-	Canvas canvas(128, 40, "Preview", 0xFFFFFFFF);
-	HIDDevice device;
-	const std::string devName = "VID_1038&PID_1612&mi_01";
-	device.Open(devName, true);
-
-	
-	
-	if (!device.Open(devName, true))
+	try
 	{
-		std::cout << device.GetLastErrorStrA() << std::endl;
-		return 1;
-	}
+		Canvas canvas(128, 40, "Preview", 0xFFFFFFFF);
+		VirtualCanvas vc(128, 40);
+		Font font("font1.fnt");
+		HIDDevice device;
+		const std::string devName = "VID_1038&PID_1612&mi_01";
+		device.Open(devName, true);
 
-	while (true)
-	{
-		auto pic = getPicture("Hello");
-		/*if (device.SendFeatureReport(pic) == -1)
+
+		/*if (!device.Open(devName, true))
 		{
-			std::cout << "SendFeatureReport failed: " << device.GetLastErrorStrA() << std::endl;
-			return 3;
+			std::cout << device.GetLastErrorStrA() << std::endl;
+			return 1;
 		}*/
-		canvas.Push(pic);
-		std::this_thread::sleep_for(10ms);
+
+		int i = 0;
+		while (true)
+		{
+			vc.DrawTextRegular(font, "sosai bibu! ûû)", i, 5, true);
+			vc.DrawLine(2, 8, 100, 35);
+			auto frame = vc.GetBitmap();
+			vc.Clear();
+			/*if (device.SendFeatureReport(pic) == -1)
+			{
+				std::cout << "SendFeatureReport failed: " << device.GetLastErrorStrA() << std::endl;
+				return 3;
+			}*/
+			canvas.Push(frame);
+			std::this_thread::sleep_for(10ms);
+			i++;
+			if (i >= 127)
+				i = -127;
+		}
+
+		std::cout << device.GetManufacturerA() << " " << device.GetProductStrA() << " " << device.GetSerialA() << std::endl;
+
+		device.Close();
 	}
-
-	std::cout << device.GetManufacturerA() << " " << device.GetProductStrA() << " " << device.GetSerialA() << std::endl;
-
-	device.Close();
+	catch (const std::exception& ex)
+	{
+		std::cout << "Exception: " << ex.what() << std::endl;
+	}
 	return 0;
 }

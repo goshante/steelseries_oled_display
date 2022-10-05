@@ -10,17 +10,17 @@ private:
 	int								_height;
 	int								_width;
 	std::string						_seq;	//Empty associated char sequence means font is 0-255 ASCII representation
+	bool							_utf8;
 
 public:
-	Font(const std::string& pathToTxtFont, int h, int w, const std::string& seq = "");
-	Font(std::vector<unsigned char> dict, int h, int w, const std::string& seq = "");
+	Font(const std::string& pathToTxtFont, const std::string& seq = "", bool utf8 = false);
+	Font(const std::vector<unsigned char>& dict, int h, int w, const std::string& seq = "", bool utf8 = false);
 	Font(const Font& copy);
 	Font& operator=(const Font& copy);
 	~Font();
 
+	int GetHeight() const;
+	int GetWidth() const;
 	//Each pixel is a byte
-	bitmap_t GetLetterImage_8bit(utf8char_t ch);
-
-	//Each pixel is a bit
-	std::vector<unsigned char> GetLetterImage_1bit(utf8char_t ch);
+	bitmap_t GetLetterImage_8bit(utf8char_t ch) const;
 };

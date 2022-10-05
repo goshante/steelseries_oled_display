@@ -1,6 +1,5 @@
 #include "Canvas.h"
-
-#define min(a,b) (a < b ? a : b)
+#include "Utils.h"
 
 Canvas::Canvas(int w, int h, const std::string& title, uint32_t brush, uint32_t background)
 	: _pw(nullptr)
@@ -12,12 +11,7 @@ Canvas::Canvas(int w, int h, const std::string& title, uint32_t brush, uint32_t 
 	, _paused(false)
 {
 	_frame = std::vector<std::vector<pixel_t>>(_width);
-	for (auto& x : _frame)
-	{
-		x = std::vector<pixel_t>(_height);
-		for (auto& y : x)
-			y = 0;
-	}
+	InitBitmap(_frame, _height, _width);
 	_thread = std::make_shared<std::thread>(&Canvas::_draw, this);
 }
 
@@ -38,7 +32,7 @@ void Canvas::Show(bool show)
 	if (!show)
 	{
 		_paused = true;
-		_thread->join();
+		_thread->detach();
 	}
 	else
 	{
@@ -57,11 +51,11 @@ void Canvas::_draw()
 		_pw->beginFrame();
 		_pw->setBackgroundColor(_background);
 		_lock.lock();
-		for (int x = 0; x < min(_width, _frame.size()); x++)
+		for (int y = 0; y < Min(_height, _frame.size()); y++)
 		{
-			for (int y = 0; y < min(_height, _frame[x].size()); y++)
+			for (int x = 0; x < Min(_width, _frame[y].size()); x++)
 			{
-				if (_frame[x][y] > 0)
+				if (_frame[y][x] > 0)
 					_pw->setPixel(x, y, _brush);
 			}
 		}

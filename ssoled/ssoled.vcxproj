@@ -145,11 +145,17 @@
     <ClCompile Include="Canvas.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="reutils.cpp" />
+    <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="VirtualCanvas.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Canvas.h" />
     <ClInclude Include="defs.h" />
     <ClInclude Include="Font.h" />
+    <ClInclude Include="reutils.h" />
+    <ClInclude Include="Utils.h" />
+    <ClInclude Include="VirtualCanvas.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
