@@ -56,16 +56,15 @@ Font::Font(const std::string& pathToTxtFont, const std::string& seq, bool utf8)
 }
 
 Font::Font(const std::vector<unsigned char>& dict, int h, int w, const std::string& seq, bool utf8)
-	: _dict(dict)
-	, _height(h)
+	: _height(h)
 	, _width(w)
 	, _seq(seq)
 	, _utf8(utf8)
 {
-	if (_dict.size() % (_width * _height) != 0)
+	if (dict.size() % (_width * _height) != 0)
 		throw std::runtime_error("Font is corrupted or has wrong resolution");
 
-	auto count = _dict.size() / (_width * _height);
+	auto count = dict.size() / (_width * _height);
 	if (seq.empty() && count != 256)
 		throw std::runtime_error("Font character count mismatch, expected full ASCII representation");
 
@@ -79,6 +78,9 @@ Font::Font(const std::vector<unsigned char>& dict, int h, int w, const std::stri
 		if (!seq.empty() && count != seq.length())
 			throw std::runtime_error("Font character count mismatch");
 	}
+
+	for (auto& c : dict)
+		_dict.push_back(c == '0' ? 0 : 1);
 }
 
 Font::Font(const Font& copy)
@@ -158,24 +160,24 @@ bitmap_t Font::GetLetterImage_8bit(utf8char_t ch) const
 		bool skip_retry = false;
 	utf8_enum:
 		enumerateUTF8String(_seq, [&](utf8char_t uc, size_t n, size_t cpsz)
-		{
-			if (uc == ch)
 			{
-				size_t q = 0;
-				for (size_t y = 0; y < letter.size(); y++)
+				if (uc == ch)
 				{
-					for (size_t x = 0; x < letter[y].size(); x++)
+					size_t q = 0;
+					for (size_t y = 0; y < letter.size(); y++)
 					{
-						letter[y][x] = _dict[(n * letterSize) + q];
-						q++;
+						for (size_t x = 0; x < letter[y].size(); x++)
+						{
+							letter[y][x] = _dict[(n * letterSize) + q];
+							q++;
+						}
 					}
+					found = true;
 				}
-				found = true;
-			}
-		});
+			});
 		if (found)
 			return letter;
-		
+
 
 		if (!skip_retry)
 		{
@@ -215,4 +217,88 @@ bitmap_t Font::GetLetterImage_8bit(utf8char_t ch) const
 	}
 
 	return {};
+}
+
+bitmap_t Font::getFontTable(int maxColumn) const
+{
+	bitmap_t font;
+	int h, w, count = (int)CharCount();
+	int rows = count / maxColumn;
+	if (rows == 0)
+		rows = 1;
+	if (rows == 1)
+		maxColumn = count;
+	w = rows == 1 ? count * _width : maxColumn * _width;
+	h = rows * _height;
+	w = w + maxColumn - 1;
+	h = h + rows - 1;
+
+	InitBitmap(font, h, w);
+	int i = 0;
+	for (int r = 0; r < rows; r++)
+	{
+		for (int c = 0; c < maxColumn; c++)
+		{
+			for (int y = 0; y < _height + 1; y++)
+			{
+				for (int x = 0; x < _width + 1; x++)
+				{
+					if (y == _height)
+						break;
+
+					if (x < _width)
+					{
+						font[r * _height + y + r][c * _width + x + c] = _dict[i];
+						i++;
+					}
+					else if (c != maxColumn - 1)
+						font[r * _height + y + r][c * _width + x + c] = 3;
+				}
+			}
+
+			if (r != rows - 1)
+			{
+				int y = _height;
+				for (int x = 0; x < _width + 1; x++)
+				{
+					if (c != maxColumn - 1 || x < _width)
+						font[r * _height + y + r][c * _width + x + c] = 3;
+				}
+			}
+		}
+	}
+
+	return font;
+}
+
+size_t Font::CharCount() const
+{
+	if (_seq.empty())
+		return 256;
+	else
+		return _utf8 ? strlen_utf8(_seq) : _seq.length();
+}
+
+bitmap_t Font::operator[](size_t i) const
+{
+	utf8char_t ch;
+	if (_seq.empty())
+	{
+		if (i > 255)
+			throw std::runtime_error("Out of range");
+		ch = utf8char_t(i);
+	}
+	else
+	{
+		size_t len = _utf8 ? strlen_utf8(_seq) : _seq.length();
+		if (i > len - 1)
+			throw std::runtime_error("Out of range");
+		enumerateUTF8String(_seq, [&](utf8char_t c, size_t n, size_t)
+			{
+				if (n == i)
+					ch = c;
+			});
+	}
+
+	return GetLetterImage_8bit(ch);
 }

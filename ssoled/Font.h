@@ -19,8 +19,11 @@ public:
 	Font& operator=(const Font& copy);
 	~Font();
 
+	bitmap_t operator[](size_t i) const;
+
 	int GetHeight() const;
 	int GetWidth() const;
-	//Each pixel is a byte
 	bitmap_t GetLetterImage_8bit(utf8char_t ch) const;
+	bitmap_t getFontTable(int maxColumn) const;
+	size_t CharCount() const;
 };
