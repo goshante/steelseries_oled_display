@@ -53,17 +53,44 @@ std::vector<unsigned char> VirtualCanvas::GetSerializedData() const
 	return buffer;
 }
 
-void VirtualCanvas::DrawTextRegular(const Font& font, const std::string& text, int off_x, int off_y, bool invert)
+VirtualCanvas::Dims VirtualCanvas::DrawTextRegular(const Font& font, const std::string& text, int off_x, int off_y, int brush, bool invert, bool monospace)
 {
-	int fw = font.GetWidth();
 	int fh = font.GetHeight();
+	Dims dims;
+	dims.a_x = off_x;
+	dims.a_y = off_y;
+	dims.b_x = off_x;
+	dims.b_y = off_y + fh;
+	int initialX = off_x;
+
+	int cur_row_w = off_x;
 	for (size_t i = 0; i < text.length(); i++)
 	{
 		char c = text[i];
-		auto letter = font.GetLetterImage_8bit(c);
+		auto letter = font.GetCharImage_8bit((unsigned char)c, monospace);
+
 		if (letter.empty())
 			continue;
 
+		int fw = (int)letter[0].size();
+
+		if (c == '\r')
+			continue;
+
+		if (c == '\n')
+		{
+			off_y += 1 + fh;
+			dims.b_y += 1 + fh;
+
+
+			if (cur_row_w > dims.b_x)
+				dims.b_x = cur_row_w;
+
+			off_x = initialX;
+			cur_row_w = initialX;
+			continue;
+		}
+
 		for (int y = 0; y < fh; y++)
 		{
 			for (int x = 0; x < fw; x++)
@@ -75,23 +102,55 @@ void VirtualCanvas::DrawTextRegular(const Font& font, const std::string& text, i
 
 				if ((!invert && letter[y][x] == 1) ||
 					(invert && letter[y][x] == 0))
-					_canvas[pos_y][pos_x] = 1;
+					_canvas[pos_y][pos_x] = brush;
 			}
 		}
-		off_x += fw;
+		off_x += fw + font.GetInterval();
+		cur_row_w += fw + font.GetInterval();
 	}
+
+	if (dims.b_x == initialX)
+		dims.b_x = cur_row_w;
+	return dims;
 }
 
-void VirtualCanvas::DrawTextUTF8(const Font& font, const std::string& text, int off_x, int off_y, bool invert)
+VirtualCanvas::Dims VirtualCanvas::DrawTextUTF8(const Font& font, const std::string& text, int off_x, int off_y, int brush, bool invert, bool monospace)
 {
-	int fw = font.GetWidth();
 	int fh = font.GetHeight();
-	enumerateUTF8String(text, [&](utf8char_t c, size_t n, size_t cpsz)
+	Dims dims;
+	dims.a_x = off_x;
+	dims.a_y = off_y;
+	dims.b_x = off_x;
+	dims.b_y = off_y + fh;
+	int initialX = off_x;
+
+	int cur_row_w = off_x;
+	enumerateUTF8String(text, [&](utf8char_t c, size_t i, size_t cpsz)
 	{
-		auto letter = font.GetLetterImage_8bit(c);
+		auto letter = font.GetCharImage_8bit(c, monospace);
+
 		if (letter.empty())
 			return;
 
+		int fw = (int)letter[0].size();
+
+		if (c == '\r')
+			return;
+
+		if (c == '\n')
+		{
+			off_y += 1 + fh;
+			dims.b_y += 1 + fh;
+
+
+			if (cur_row_w > dims.b_x)
+				dims.b_x = cur_row_w;
+
+			off_x = initialX;
+			cur_row_w = initialX;
+			return;
+		}
+
 		for (int y = 0; y < fh; y++)
 		{
 			for (int x = 0; x < fw; x++)
@@ -103,34 +162,21 @@ void VirtualCanvas::DrawTextUTF8(const Font& font, const std::string& text, int 
 
 				if ((!invert && letter[y][x] == 1) ||
 					(invert && letter[y][x] == 0))
-					_canvas[pos_y][pos_x] = 1;
+					_canvas[pos_y][pos_x] = brush;
 			}
 		}
-		off_x += fw;
+		off_x += fw + font.GetInterval();
+		cur_row_w += fw + font.GetInterval();
 	});
+
+	if (dims.b_x == initialX)
+		dims.b_x = cur_row_w;
+	return dims;
 }
 
 void VirtualCanvas::DrawLine(int ax, int ay, int bx, int by)
 {
-	int dx = bx - ax;
-	int dy = by - ay;
-
-	_canvas[ay][ax] = 1;
-	if (dx != 0)
-	{
-		int m = dy / dx;
-		int b = ay - m * ax;
-		if (bx > ax)
-			dx = 1;
-		else
-			dx = -1;
-		while (ax != bx)
-		{
-			ax = ax + dx;
-			ay = floor(m * ax + b + 0.5);
-			_canvas[ay][ax] = 1;
-		}
-	}
+	
 }
 
 void VirtualCanvas::Clear()

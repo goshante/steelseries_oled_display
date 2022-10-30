@@ -1,5 +1,6 @@
 #include "Canvas.h"
 #include "Utils.h"
+#include <Windows.h>
 
 Canvas::Canvas(int w, int h, const std::string& title, uint32_t brush, uint32_t background)
 	: _pw(nullptr)
@@ -43,24 +44,37 @@ void Canvas::Show(bool show)
 
 void Canvas::_draw()
 {
-	_pw = std::make_shared<pw::PixelWindow>(_width, _height, _title.c_str());
-	while (!_paused)
+	try
 	{
-		_pw->makeCurrent();
-		_pw->pollEvents();
-		_pw->beginFrame();
-		_pw->setBackgroundColor(_background);
-		_lock.lock();
-		for (int y = 0; y < Min(_height, _frame.size()); y++)
+		_pw = std::make_shared<pw::PixelWindow>(_width, _height, _title.c_str());
+		_pw->setOwner(this);
+
+		while (!_paused)
 		{
-			for (int x = 0; x < Min(_width, _frame[y].size()); x++)
+			_pw->makeCurrent();
+			_pw->pollEvents();
+			_pw->beginFrame();
+			_pw->setBackgroundColor(_background);
+			_lock.lock();
+			for (int y = 0; y < Min(_height, _frame.size()); y++)
 			{
-				if (_frame[y][x] > 0)
-					_pw->setPixel(x, y, _brush);
+				for (int x = 0; x < Min(_width, _frame[y].size()); x++)
+				{
+					if (_frame[y][x] > 0)
+						_pw->setPixel(x, y, _brush);
+				}
 			}
+			_lock.unlock();
+			_pw->endFrame();
 		}
-		_lock.unlock();
-		_pw->endFrame();
+		_pw->forceClose();
+		_pw.reset();
+		_paused = true;
 	}
-	_pw->forceClose();
+	catch (const std::exception& ex)
+	{
+		MessageBoxA(NULL, ex.what(), "Exception", MB_OK | MB_ICONERROR);
+		_paused = true;
+		_pw.reset();
+	}
 }

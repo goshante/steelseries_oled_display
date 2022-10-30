@@ -10,6 +10,7 @@
 #include "Canvas.h"
 #include "VirtualCanvas.h"
 #include "Font.h"
+#include <windows.ui.notifications.h>
 
 using namespace std::chrono_literals;
 
@@ -94,11 +95,11 @@ int main()
 	{
 		Canvas canvas(128, 40, "Preview", 0xFFFFFFFF);
 		VirtualCanvas vc(128, 40);
-		Font font("font1.fnt");
+		Font font1("font1.fnt");
+		Font font2("smol.fnt");
 		HIDDevice device;
 		const std::string devName = "VID_1038&PID_1612&mi_01";
 		device.Open(devName, true);
-
 
 		/*if (!device.Open(devName, true))
 		{
@@ -109,7 +110,10 @@ int main()
 		int i = 0;
 		while (true)
 		{
-			vc.DrawTextRegular(font, "sosai bibu! ыы)", i, 5, true);
+			vc.DrawTextRegular(font1, "Messages:", 3, 0);
+			vc.DrawTextRegular(font2, "TEST: EEEEEEEEEEE", 5, 14);
+			vc.DrawTextRegular(font2, "Почему бы бибу не соснуть?", 5-i, 14+ 9);
+			vc.DrawTextRegular(font2, "TEST 33333333333", 5, 14 + 9 * 2);
 			vc.DrawLine(2, 8, 100, 35);
 			auto frame = vc.GetBitmap();
 			vc.Clear();
@@ -119,7 +123,7 @@ int main()
 				return 3;
 			}*/
 			canvas.Push(frame);
-			std::this_thread::sleep_for(10ms);
+			std::this_thread::sleep_for(60ms);
 			i++;
 			if (i >= 127)
 				i = -127;
